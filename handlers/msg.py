@@ -155,7 +155,7 @@ def updateHandlers(client, message,redis):
 				Bot("sendMessage",{"chat_id":chatID,"text":r.sudostart,"reply_to_message_id":message.message_id,"parse_mode":"html","reply_markup":kb})
 				return 0
 			getbot = client.get_me()
-			kb = InlineKeyboardMarkup([[InlineKeyboardButton("TshakeTeam", url="t.me/calmaacc")]])
+			kb = InlineKeyboardMarkup([[InlineKeyboardButton("LomaV2", url="t.me/calmaacc")]])
 			Bot("sendMessage",{"chat_id":chatID,"text":r.botstart.format(getbot.first_name,getbot.username),"reply_to_message_id":message.message_id,"parse_mode":"html","reply_markup":kb})
 			
 		if text and re.search("^/start (.*)$",text):
