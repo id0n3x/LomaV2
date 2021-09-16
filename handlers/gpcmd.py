@@ -800,8 +800,8 @@ __italic__
             i += 1 
           sendM("NO",listTag,message)
           
-      # if re.search(c.Chlang, text):
-      #   Bot("sendMessage",{"chat_id":chatID,"text":r.Chlang,"reply_to_message_id":message.message_id,"parse_mode":"html","reply_markup":Clang(client, message,redis,r)})
+      if re.search(c.Chlang, text):
+       Bot("sendMessage",{"chat_id":chatID,"text":r.Chlang,"reply_to_message_id":message.message_id,"parse_mode":"html","reply_markup":Clang(client, message,redis,r)})
       if re.search(c.PROadmins, text):
         ads = Bot("getChatAdministrators",{"chat_id":chatID})
         for ad in ads['result']:
