@@ -61,16 +61,13 @@ def updateCallback(client, callback_query,redis):
   date = json.loads(callback_query.data)
   
   group = redis.sismember("{}Nbot:groups".format(BOT_ID),chatID)
-  lang = Glang(redis,chatID)
-  moduleCMD = "lang."+lang+"-cmd"
-  moduleREPLY = "lang."+lang+"-reply"
-  c = importlib.import_module(moduleCMD)
-  r = importlib.import_module(moduleREPLY)
+  c = importlib.import_module("lang.arcmd")
+  r = importlib.import_module("lang.arreply")
   
 
   if date[0] == "Cordertow":
     rank = isrank(redis,userID,chatID)
-    if (rank is "sudo" or rank is "sudos" or rank is "creator" or rank is "owner"):
+    if (rank is "sudo" or rank is "asudo" or rank is "sudos" or rank is "malk" or rank is "acreator" or rank is "creator" or rank is "owner"):
       if redis.sismember("{}Nbot:{}:bans".format(BOT_ID,chatID),date[1]):
         GetGprank = GPranks(date[1],chatID)
         if GetGprank == "kicked":
@@ -87,6 +84,9 @@ def updateCallback(client, callback_query,redis):
       redis.delete("{}Nbot:{}:{}".format(BOT_ID,chat,Hash))
       Bot("editMessageText",{"chat_id":chatID,"text":r.DoneDelList,"message_id":message_id,"disable_web_page_preview":True})
   if re.search("del(.*)replys$",date[0]):
+    if int(date[2]) != userID:
+      Bot("answerCallbackQuery",{"callback_query_id":callback_query.id,"text":r.notforyou,"show_alert":True})
+      return 0
     t = date[0].replace("del","")
     if date[1] != "kb":
       redis.delete("{}Nbot:{}:{}".format(BOT_ID,date[1],t))
@@ -155,39 +155,6 @@ def updateCallback(client, callback_query,redis):
       reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(r.Corder, callback_data=json.dumps(["Cordertow",userID]))]])
       Bot("editMessageText",{"chat_id":chatID,"text":r.bancheck.format(T),"message_id":message_id,"disable_web_page_preview":True,"parse_mode":"html","reply_markup":reply_markup})
       
-
-    if date[0] == "addor":
-      cpKey = date[1]
-      kbList = {"vip":{
-        "cb":"^%(tx)s$|^%(tx)s @(.*)$|%(tx)s [0-9]+$",
-        "cb2":"^%(tx)s [0-9]+$",
-        "rp":c.orvip,
-      },"owner":{
-        "cb":"^%(tx)s$|^%(tx)s @(.*)$|%(tx)s [0-9]+$",
-        "cb2":"^%(tx)s [0-9]+$",
-        "rp":c.orow,
-      },"admin":{
-        "cb":"^%(tx)s$|^%(tx)s @(.*)$|%(tx)s [0-9]+$",
-        "cb2":"^%(tx)s [0-9]+$",
-        "rp":c.orad,
-      },"ban":{
-        "cb":"^%(tx)s$|^%(tx)s @(.*)$|%(tx)s [0-9]+$",
-        "cb2":"^%(tx)s [0-9]+$",
-        "rp":c.orban,
-      },"tk":{
-        "cb":"^%(tx)s$|^%(tx)s @(.*)$|%(tx)s [0-9]+$",
-        "cb2":"^%(tx)s [0-9]+$",
-        "rp":c.ortk,
-      }
-      }
-      cc = re.findall(c.addor,callback_query.message.reply_to_message.text)
-      F = kbList[cpKey]
-      cb = F["cb"] % {'tx': cc[0]}
-      cb2 = F["cb2"] % {'tx': cc[0]}
-      print(cb,cb2)
-      redis.hset("{}Nbot:{}or:cb".format(BOT_ID,cpKey),chatID,cb)
-      redis.hset("{}Nbot:{}or:cb2".format(BOT_ID,cpKey),chatID,cb2)
-      callback_query.message.edit_text(r.Daddor.format(cc[0],F["rp"]))
 
     if date[0] == "delF":
       File = date[1]
@@ -375,7 +342,7 @@ def updateCallback(client, callback_query,redis):
       reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(c.STword,callback_data=json.dumps(["showBlocklist","",userID])),InlineKeyboardButton(c.STgifs,url="https://telegram.me/{}?start=showBlocklist={}={}={}".format(Botuser,chatID,userID,"blockanimations")),],[InlineKeyboardButton(c.STphoto,url="https://telegram.me/{}?start=showBlocklist={}={}={}".format(Botuser,chatID,userID,"blockphotos")),InlineKeyboardButton(c.STsticker,url="https://telegram.me/{}?start=showBlocklist={}={}={}".format(Botuser,chatID,userID,"blockSTICKERs")),]])
       Bot("editMessageText",{"chat_id":chatID,"text":r.blocklist.format(r.blocklist2,title),"message_id":message_id,"parse_mode":"html","reply_markup":reply_markup})
     if date[0] == "replylist":
-      reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(c.STword,callback_data=json.dumps(["showreplylist","",userID])),InlineKeyboardButton(c.STgifs,callback_data=json.dumps(["showGFreplylist","",userID])),],[InlineKeyboardButton(c.STvoice,callback_data=json.dumps(["showVOreplylist","",userID])),InlineKeyboardButton(c.STsticker,callback_data=json.dumps(["showSTreplylist","",userID])),]])
+      reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(c.STword,callback_data=json.dumps(["showreplylist","",userID])),InlineKeyboardButton(c.STgifs,callback_data=json.dumps(["showGFreplylist","",userID])),],[InlineKeyboardButton(c.STvoice,callback_data=json.dumps(["showVOreplylist","",userID])),InlineKeyboardButton(c.STsticker,callback_data=json.dumps(["showSTreplylist","",userID])),],[InlineKeyboardButton("Mp3",callback_data=json.dumps(["showAUreplylist","",userID]))]])
       Bot("editMessageText",{"chat_id":chatID,"text":r.blocklist.format(r.replylist,title),"message_id":message_id,"parse_mode":"html","reply_markup":reply_markup})
     if date[0] == "replylistBOT":
       reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(c.STword,callback_data=json.dumps(["showreplylistBOT","",userID])),InlineKeyboardButton(c.STgifs,callback_data=json.dumps(["showGFreplylistBOT","",userID])),],[InlineKeyboardButton(c.STvoice,callback_data=json.dumps(["showVOreplylistBOT","",userID])),InlineKeyboardButton(c.STsticker,callback_data=json.dumps(["showSTreplylistBOT","",userID])),]])
@@ -450,6 +417,25 @@ def updateCallback(client, callback_query,redis):
       else:
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("<<",callback_data=json.dumps(["replylist","",userID])),]])
         Bot("editMessageText",{"chat_id":chatID,"text":r.replylistEm,"message_id":message_id,"disable_web_page_preview":True,"reply_markup":reply_markup})
+
+    if date[0] == "showAUreplylist":
+      li = redis.hkeys("{}Nbot:{}:AUreplys".format(BOT_ID,chatID))
+      if li:
+        words = ""
+        i = 1
+        for word in li:
+          words = words+"\n"+str(i)+" - {"+word+"}"
+          i += 1
+        if len(words) > 3000:
+          Botuser = client.get_me().username
+          reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(r.clickTOpv,url="https://telegram.me/{}?start=showreplylist={}={}={}".format(Botuser,chatID,userID,"STreplys")),],[InlineKeyboardButton("<<",callback_data=json.dumps(["replylist","",userID])),]])
+          Bot("editMessageText",{"chat_id":chatID,"text":r.Toolong,"message_id":message_id,"disable_web_page_preview":True,"reply_markup":reply_markup})
+        else:
+          reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("ًں“‚ê’گ ظ‚ط§ط¦ظ…ط© ط§ظ„طµظˆطھظٹط§طھ ظپط§ط±ط؛ط©",callback_data=json.dumps(["delSTreplys","kb",userID])),],[InlineKeyboardButton("<<",callback_data=json.dumps(["replylist","",userID])),]])
+          Bot("editMessageText",{"chat_id":chatID,"text":words,"message_id":message_id,"disable_web_page_preview":True,"reply_markup":reply_markup})
+      else:
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("<<",callback_data=json.dumps(["replylist","",userID])),]])
+        Bot("editMessageText",{"chat_id":chatID,"text":"ًں“‚ê’گ ظ‚ط§ط¦ظ…ط© ط§ظ„طµظˆطھظٹط§طھ ظپط§ط±ط؛ط©","message_id":message_id,"disable_web_page_preview":True,"reply_markup":reply_markup})
 
 
     if date[0] == "showSTreplylist":
@@ -710,11 +696,11 @@ def updateCallback(client, callback_query,redis):
       H = date[1]
 
 
-      if H != "sudos" and H != "creator":
+      if H != "sudos" and H != "creator" and H != "asudos":
         redis.delete("{}Nbot:{}:{}".format(BOT_ID,chatID,H))
         Bot("editMessageText",{"chat_id":chatID,"text":r.DoneDelList,"message_id":message_id,"disable_web_page_preview":True})
-      if H == "sudos":
-        redis.delete("{}Nbot:sudos".format(BOT_ID))
+      if H == "sudos" or H == "asudo":
+        redis.delete("{}Nbot:{}".format(BOT_ID,H))
         Bot("editMessageText",{"chat_id":chatID,"text":r.DoneDelList,"message_id":message_id,"disable_web_page_preview":True})
       if H == "creator":
         redis.delete("{}Nbot:{}:{}".format(BOT_ID,chatID,H))
