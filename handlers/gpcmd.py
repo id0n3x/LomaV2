@@ -1,4 +1,4 @@
-from utlis.rank import setrank,isrank,remrank,remsudos,setsudo, GPranks,Grank,IDrank,isrankDef,remasudo
+from utlis.rank import setrank,isrank,remrank,remsudos,setsudo, GPranks,Grank,IDrank
 from utlis.tg import Bot , Ckuser
 from utlis.send import send_msg, BYusers, Name,Glang,sendM,getAge
 from utlis.locks import st,Clang,st_res
@@ -22,17 +22,12 @@ def gpcmd(client, message,redis):
   username = message.from_user.username
   if username is None:
     username = "None"
-  c = importlib.import_module("lang.arcmd")
-  r = importlib.import_module("lang.arreply")
+  lang = Glang(redis,chatID)
+  moduleCMD = "lang."+lang+"-cmd"
+  moduleREPLY = "lang."+lang+"-reply"
+  c = importlib.import_module(moduleCMD)
+  r = importlib.import_module(moduleREPLY)
   #steps
-  if redis.hexists("{}Nbot:step:or".format(BOT_ID),userID):
-    tx = redis.hget("{}Nbot:step:or".format(BOT_ID),userID)
-    if text :
-      redis.sadd("{}Nbot:{}:TXoeders".format(BOT_ID,chatID),f"{tx}={text}")
-      redis.hdel("{}Nbot:step:or".format(BOT_ID),userID)
-      Bot("sendMessage",{"chat_id":chatID,"text":f"✅꒐ تم اضافه الامر {tx} الى {text}","reply_to_message_id":message.message_id,"parse_mode":"html"})
-    
-
   if redis.hexists("{}Nbot:step".format(BOT_ID),userID):
     tx = redis.hget("{}Nbot:step".format(BOT_ID),userID)
     if text :
@@ -57,14 +52,7 @@ def gpcmd(client, message,redis):
       redis.hset("{}Nbot:{}:VOreplys".format(BOT_ID,chatID),tx,ID)
       redis.hdel("{}Nbot:step".format(BOT_ID),userID)
       Bot("sendMessage",{"chat_id":chatID,"text":r.SRvo.format(tx),"reply_to_message_id":message.message_id,"parse_mode":"html"})
-
-    if message.audio:
-      ID = message.audio.file_id
-      redis.hset("{}Nbot:{}:AUreplys".format(BOT_ID,chatID),tx,ID)
-      redis.hdel("{}Nbot:step".format(BOT_ID),userID)
-      Bot("sendMessage",{"chat_id":chatID,"text":r.SRvo.format(tx),"reply_to_message_id":message.message_id,"parse_mode":"html"})
     
-      
     if message.photo:
       ID = message.photo.file_id
       redis.hset("{}Nbot:{}:PHreplys".format(BOT_ID,chatID),tx,ID)
@@ -92,39 +80,9 @@ def gpcmd(client, message,redis):
     if re.search(c.settingsCmdRes, text) and Ckuser(message):
       kb = st_res(client, message,redis)
       Bot("sendMessage",{"chat_id":chatID,"text":r.settingsRes.format(title),"reply_to_message_id":message.message_id,"parse_mode":"html","reply_markup":kb})
-    if re.search(c.del_bans,text):
-      arrays = redis.smembers("{}Nbot:{}:bans".format(BOT_ID,chatID))
-      for user in arrays:
-        GetGprank = GPranks(user,chatID)
-        if GetGprank == "kicked":
-          Bot("unbanChatMember",{"chat_id":chatID,"user_id":user})
-        redis.srem("{}Nbot:{}:bans".format(BOT_ID,chatID),user)
-      Bot("sendMessage",{"chat_id":chatID,"text":r.DoneDelList,"disable_web_page_preview":True})
-
-    if re.search(c.del_mutes,text):
-      redis.delete(f"{BOT_ID}Nbot:{chatID}:muteusers")
-      Bot("sendMessage",{"chat_id":chatID,"text":r.DoneDelList,"disable_web_page_preview":True})
-    if re.search(c.mutes, text):
-      arrays = redis.smembers("{}Nbot:{}:muteusers".format(BOT_ID,chatID))
-      b = BYusers(arrays,chatID,redis,client)
-      kb = InlineKeyboardMarkup([[InlineKeyboardButton(r.delList.format(text), callback_data=json.dumps(["delList","muteusers",userID]))]])
-      if  b is not "":
-        Bot("sendMessage",{"chat_id":chatID,"text":r.showlist.format(text,b),"reply_to_message_id":message.message_id,"parse_mode":"markdown","reply_markup":kb})
-      else:
-        Bot("sendMessage",{"chat_id":chatID,"text":r.listempty.format(text),"reply_to_message_id":message.message_id,"parse_mode":"markdown"})
-
-      
-      
-    if re.search(c.del_restricteds,text):
-      arrays = redis.smembers("{}Nbot:{}:restricteds".format(BOT_ID,chatID))
-      for user in arrays:
-        GetGprank = GPranks(user,chatID)
-        if GetGprank == "restricted":
-          Bot("restrictChatMember",{"chat_id": chatID,"user_id": user,"can_send_messages": 1,"can_send_media_messages": 1,"can_send_other_messages": 1,"can_send_polls": 1,"can_change_info": 1,"can_add_web_page_previews": 1,"can_pin_messages": 1,})
-        redis.srem("{}Nbot:{}:restricteds".format(BOT_ID,chatID),user)
-      Bot("sendMessage",{"chat_id":chatID,"text":r.DoneDelList,"disable_web_page_preview":True})
-      
-    if re.search(c.bans, text) :
+    
+    
+    if re.search(c.bans, text):
       arrays = redis.smembers("{}Nbot:{}:bans".format(BOT_ID,chatID))
       b = BYusers(arrays,chatID,redis,client)
       kb = InlineKeyboardMarkup([[InlineKeyboardButton(r.delList.format(text), callback_data=json.dumps(["delListbans","",userID]))]])
@@ -144,10 +102,7 @@ def gpcmd(client, message,redis):
 
     orban = redis.hget("{}Nbot:banor:cb".format(BOT_ID),chatID) or c.ban
     orban2 = redis.hget("{}Nbot:banor:cb2".format(BOT_ID),chatID) or c.ban2
-    if re.search(c.ban+"|"+orban, text) :
-      if (rank == "creater" or rank == "owner" or rank == "admin" ) and redis.sismember("{}Nbot:kickban".format(BOT_ID),chatID):
-        Bot("sendMessage",{"chat_id":chatID,"text":"عذراً الحظر معطل ⚠️","reply_to_message_id":message.message_id,"parse_mode":"html"})
-        return 0
+    if re.search(c.ban+"|"+orban, text):
       if re.search("@",text):
         user = text.split("@")[1]
       if re.search(c.ban2+"|"+orban2,text):
@@ -157,6 +112,7 @@ def gpcmd(client, message,redis):
       if 'user' not in locals():return False
       try:
         getUser = client.get_users(user)
+        #print(getUser)
         userId = getUser.id
         userFn = getUser.first_name
         Getrank = isrank(redis,userId,chatID)
@@ -241,134 +197,7 @@ def gpcmd(client, message,redis):
           Bot("sendMessage",{"chat_id":chatID,"text":r.haveRank.format(Grank((Getrank or GetGprank),r)),"reply_to_message_id":message.message_id,"parse_mode":"html"})
       except Exception as e:
         Bot("sendMessage",{"chat_id":chatID,"text":r.userNocc,"reply_to_message_id":message.message_id,"parse_mode":"html"})
-    
 
-
-    if re.search("^كشف القيود$|^كشف القيود @(.*)$|^كشف القيود [0-9]+$", text):
-      if re.search("@",text):
-        user = text.split("@")[1]
-      if re.search("^كشف القيود [0-9]+$",text):
-        user = int(re.search(r'\d+', text).group())
-      if message.reply_to_message:
-        user = message.reply_to_message.from_user.id
-      if 'user' not in locals():return False
-      try:
-        getUser = client.get_users(user)
-        userId = getUser.id
-        userFn = getUser.first_name
-        Getrank = isrank(redis,userId,chatID)
-        BY = "<a href=\"tg://user?id={}\">{}</a>".format(userId,userFn)
-        if Getrank == "bot":return False
-        tx = f"🚹꒐ العضو : {BY}\n"
-        if redis.sismember("{}Nbot:{}:bans".format(BOT_ID,chatID),userId):
-          tx += "الحظر 🚫: محظور\n"
-        else:
-          tx += "الحظر 🚫: غير محظور\n"
-        if redis.sismember("{}Nbot:{}:restricteds".format(BOT_ID,chatID),userId):
-          tx += "الكتم 📮: مكتوم\n"
-        else:
-          tx += "الكتم 📮: غير مكتوم\n"
-        Bot("sendMessage",{"chat_id":chatID,"text":tx,"reply_to_message_id":message.message_id,"parse_mode":"html"})
-
-      except Exception as e:
-        Bot("sendMessage",{"chat_id":chatID,"text":r.userNocc,"reply_to_message_id":message.message_id,"parse_mode":"html"})
-
-    if re.search("^الغاء القيود$|^الغاء القيود @(.*)$|^الغاء القيود [0-9]+$", text):
-      if re.search("@",text):
-        user = text.split("@")[1]
-      if re.search("^الغاء القيود [0-9]+$",text):
-        user = int(re.search(r'\d+', text).group())
-      if message.reply_to_message:
-        user = message.reply_to_message.from_user.id
-      if 'user' not in locals():return False
-      try:
-        getUser = client.get_users(user)
-        userId = getUser.id
-        userFn = getUser.first_name
-        Getrank = isrank(redis,userId,chatID)
-        GetGprank = GPranks(userId,chatID)
-        BY = "<a href=\"tg://user?id={}\">{}</a>".format(userId,userFn)
-        if Getrank == "bot":return False
-        print(GetGprank)
-        if GetGprank == "member" and not redis.sismember("{}Nbot:{}:bans".format(BOT_ID,chatID),userId) and not redis.sismember("{}Nbot:{}:restricteds".format(BOT_ID,chatID),userId):
-          Bot("sendMessage",{"chat_id":chatID,"text":f"🚹꒐ العضو : {BY}\n⚪️꒐ لا توجد عليه قيود","reply_to_message_id":message.message_id,"parse_mode":"html"})
-        
-        if GetGprank == "NoMember":
-          Bot("sendMessage",{"chat_id":chatID,"text":r.NoMember,"reply_to_message_id":message.message_id,"parse_mode":"html"})
-        if redis.sismember("{}Nbot:{}:bans".format(BOT_ID,chatID),userId) or redis.sismember("{}Nbot:{}:restricteds".format(BOT_ID,chatID),userId) or GetGprank == "restricted" or GetGprank == "kicked":
-          if GetGprank == "kicked":
-            Bot("unbanChatMember",{"chat_id":chatID,"user_id":userId})
-          redis.srem("{}Nbot:{}:bans".format(BOT_ID,chatID),userId)
-          Bot("restrictChatMember",{"chat_id": chatID,"user_id": userId,"can_send_messages": 1,"can_send_media_messages": 1,"can_send_other_messages": 1,"can_send_polls": 1,
-          "can_change_info": 1,"can_add_web_page_previews": 1,"can_pin_messages": 1,"can_invite_users": 1,})
-          redis.srem("{}Nbot:{}:restricteds".format(BOT_ID,chatID),userId)
-          Bot("sendMessage",{"chat_id":chatID,"text":f"🚹꒐ العضو : {BY}\n⚪️꒐ تم الغاء القيود","reply_to_message_id":message.message_id,"parse_mode":"html"})
-
-      except Exception as e:
-        Bot("sendMessage",{"chat_id":chatID,"text":r.userNocc,"reply_to_message_id":message.message_id,"parse_mode":"html"})
-        
-        
-        
-
-
-    if re.search(c.unmute, text):
-      if re.search("@",text):
-        user = text.split("@")[1]
-      if re.search(c.unmute2,text):
-        user = text.split(" ")[1]
-      if message.reply_to_message:
-        user = message.reply_to_message.from_user.id
-      if 'user' not in locals():return False
-      try:
-        getUser = client.get_users(user)
-        userId = getUser.id
-        userFn = getUser.first_name
-        Getrank = isrank(redis,userId,chatID)
-        if Getrank == "bot":return False
-        if (Getrank is False or Getrank is 0):
-          BY = "<a href=\"tg://user?id={}\">{}</a>".format(userId,userFn)
-          if not redis.sismember(f"{BOT_ID}Nbot:{chatID}:muteusers",userId):
-            Bot("sendMessage",{"chat_id":chatID,"text":f"🚹꒐ العضو : {BY}\n🚷꒐ غير مكتوم من المجموعة","reply_to_message_id":message.message_id,"parse_mode":"html"})
-          else:
-            redis.srem(f"{BOT_ID}Nbot:{chatID}:muteusers",userId)
-            Bot("sendMessage",{"chat_id":chatID,"text":f"🚹꒐ العضو : {BY}\n🚷꒐ تم الغاء كتمه من المجموعة","reply_to_message_id":message.message_id,"parse_mode":"html"})
-        else:
-          Bot("sendMessage",{"chat_id":chatID,"text":r.haveRank.format(Grank((Getrank or GetGprank),r)),"reply_to_message_id":message.message_id,"parse_mode":"html"})
-      except Exception as e:
-        Bot("sendMessage",{"chat_id":chatID,"text":r.userNocc,"reply_to_message_id":message.message_id,"parse_mode":"html"})
-
-
-    if re.search(c.mute, text):
-      if re.search("@",text):
-        user = text.split("@")[1]
-      if re.search(c.mute2,text):
-        user = int(re.search(r'\d+', text).group())
-      if message.reply_to_message:
-        user = message.reply_to_message.from_user.id
-      if 'user' not in locals():return False
-      try:
-        getUser = client.get_users(user)
-        userId = getUser.id
-        userFn = getUser.first_name
-        Getrank = isrank(redis,userId,chatID)
-        Getrank = isrank(redis,userId,chatID)
-        if Getrank == "bot":return False
-        if (Getrank is False or Getrank is 0):
-          BY = "<a href=\"tg://user?id={}\">{}</a>".format(userId,userFn)
-          if redis.sismember(f"{BOT_ID}Nbot:{chatID}:muteusers",userId):
-            Bot("sendMessage",{"chat_id":chatID,"text":f"🚹꒐ العضو : {BY}\n🚷꒐ بالفعل مكتوم من المجموعة","reply_to_message_id":message.message_id,"parse_mode":"html"})
-          else:
-            redis.sadd(f"{BOT_ID}Nbot:{chatID}:muteusers",userId)
-            Bot("sendMessage",{"chat_id":chatID,"text":f"🚹꒐ العضو : {BY}\n🚷꒐ تم كتمه من المجموعة","reply_to_message_id":message.message_id,"parse_mode":"html"})
-        else:
-          Bot("sendMessage",{"chat_id":chatID,"text":r.haveRank.format(Grank((Getrank or GetGprank),r)),"reply_to_message_id":message.message_id,"parse_mode":"html"})
-      except Exception as e:
-        Bot("sendMessage",{"chat_id":chatID,"text":r.userNocc,"reply_to_message_id":message.message_id,"parse_mode":"html"})
-
-
-        
-        
-        
     if re.search(c.unTK, text):
       if re.search("@",text):
         user = text.split("@")[1]
@@ -398,54 +227,56 @@ def gpcmd(client, message,redis):
         Bot("sendMessage",{"chat_id":chatID,"text":r.userNocc,"reply_to_message_id":message.message_id,"parse_mode":"html"})
     
     if rank != "admin":
-
-      if re.search(c.setname, text):
-        name = text.replace(c.Dsetname,"")
-        Bot("setChatTitle",{"chat_id":chatID,"title":name})
-        Bot("sendMessage",{"chat_id":chatID,"text":r.Dsetname.format(name),"reply_to_message_id":message.message_id,"parse_mode":"html"})
-
-      if re.search(c.setabout, text):
-        about = text.replace(c.Dsetabout,"")
-        Bot("setChatDescription",{"chat_id":chatID,"description":about})
-        Bot("sendMessage",{"chat_id":chatID,"text":r.Dsetabout.format(about),"reply_to_message_id":message.message_id,"parse_mode":"html"})
-
-      if re.search(c.setphoto, text) and message.reply_to_message and message.reply_to_message.photo:
-        ID = message.reply_to_message.photo.file_id
-        client.set_chat_photo(chat_id=chatID,photo=ID)
-        Bot("sendMessage",{"chat_id":chatID,"text":r.Dsetphoto,"reply_to_message_id":message.message_id,"parse_mode":"html"})
-
-      if re.search("^حذف الصورة$|^حذف الصوره$", text):
-        client.delete_chat_photo(chat_id=chatID)
-        Bot("sendMessage",{"chat_id":chatID,"text":"☑️꒐ تم حذف صورة المجموعة","reply_to_message_id":message.message_id,"parse_mode":"html"})
-      
-      if re.search("^الاوامر المضافه$",text):
-        tx = "الاوامر المضافه ℹ️:\n"
-        x = redis.smembers("{}Nbot:{}:TXoeders".format(BOT_ID,chatID))
-        if not x :
-          message.reply_text(r.listempty2)
-          return 0
-        i = 1
-        for x in x:
-          x = x.split("=")
-          tx = tx+f"{i} - {x[0]} > {x[1]}\n"
-          i +=1
-        kb = InlineKeyboardMarkup([[InlineKeyboardButton(r.delList.format(text), callback_data=json.dumps(["delList","TXoeders",userID]))]])
-        message.reply_text(tx,reply_markup=kb)
-        
-      if re.search("^حذف امر (.*)$",text):
-        cc = re.findall("^حذف امر (.*)$",text)[0]
-        x = redis.smembers("{}Nbot:{}:TXoeders".format(BOT_ID,chatID))
-        for x1 in x:
-          x = x1.split("=")
-          if x[0] == cc:
-            redis.srem("{}Nbot:{}:TXoeders".format(BOT_ID,chatID),x1)
-            message.reply_text(f"✅꒐ تم حذف الامر {cc}")
-            return 0
-        message.reply_text(f"⚠️꒐ لا يوجد {cc} امر")
-      if re.search("^اضف امر (?!عام)\w*$",text):
-        cc = re.findall(c.addor,text)
-        redis.hset("{}Nbot:step:or".format(BOT_ID),userID,cc[0])
-        message.reply_text(f"⏺꒐ الان ارسل الامر ليتم تغيره الى {cc[0]}")
+      if re.search(c.addor,text):
+        cc= re.findall(c.addor,text)
+        kbList = {"vip":{
+          "cb":"^{0}$|^{0} @(.*)$|{0} {0-9}+$",
+          "cb2":"^{0}{0-9}+$",
+          "rp":c.orvip,
+        },"admin":{
+          "cb":"^{0}$|^{0} @(.*)$|{0} {0-9}+$",
+          "cb2":"^{0}{0-9}+$",
+          "rp":c.orad,
+        },"ban":{
+          "cb":"^{0}$|^{0} @(.*)$|{0} {0-9}+$",
+          "cb2":"^{0}{0-9}+$",
+          "rp":c.orban,
+        },"tk":{
+          "cb":"^{0}$|^{0} @(.*)$|{0} {0-9}+$",
+          "cb2":"^{0}{0-9}+$",
+          "rp":c.ortk,
+        }
+        }
+        if rank == "sudo":
+          kbList = {"vip":{
+            "cb":"^{0}$|^{0} @(.*)$|{0} {0-9}+$",
+            "cb2":"^{0}{0-9}+$",
+            "rp":c.orvip,
+          },"owner":{
+            "cb":"^{0}$|^{0} @(.*)$|{0} {0-9}+$",
+            "cb2":"^{0}{0-9}+$",
+            "rp":c.orow,
+          },"admin":{
+            "cb":"^{0}$|^{0} @(.*)$|{0} {0-9}+$",
+            "cb2":"^{0}{0-9}+$",
+            "rp":c.orad,
+          },"ban":{
+            "cb":"^{0}$|^{0} @(.*)$|{0} {0-9}+$",
+            "cb2":"^{0}{0-9}+$",
+            "rp":c.orban,
+          },"tk":{
+            "cb":"^{0}$|^{0} @(.*)$|{0} {0-9}+$",
+            "cb2":"^{0}{0-9}+$",
+            "rp":c.ortk,
+          }
+          } 
+        il = []
+        for key, value in kbList.items():
+          cb = json.dumps(["addor",key,userID])
+          rp = value["rp"]
+          il.append([InlineKeyboardButton(rp,callback_data=cb)])
+        kb = InlineKeyboardMarkup(il)
+        message.reply_text(r.addor.format(cc[0]),reply_markup=kb)
 
       if re.search(c.remallR, text):
         if re.search("@",text):
@@ -464,32 +295,84 @@ def gpcmd(client, message,redis):
           if (Rank is False or Rank is 0):
             BY = "<a href=\"tg://user?id={}\">{}</a>".format(userId,userFn)
             Bot("sendMessage",{"chat_id":chatID,"text":r.remallN.format(BY),"reply_to_message_id":message.message_id,"parse_mode":"html"})
-            return 0
-          to_del_ranks = {
-            "sudo":{"asudo","sudos","malk","acreator","creator","owner","admin","vip"},
-            "asudo":{"asudo","sudos","malk","acreator","creator","owner","admin","vip"},
-            "sudos":{"malk","acreator","creator","owner","admin","vip"},
-            "malk":{"acreator","creator","owner","admin","vip"},
-            "acreator":{"creator","owner","admin","vip"},
-            "creator":{"owner","admin","vip"},
-            "owner":{"admin","vip"},
-            "admin":{"vip"},
-          }
-          i = 0
-          for x in to_del_ranks[rank]:
-            if isrankDef(redis,userId,chatID,x) is str(x):
-              t = Grank(x,r)
+            
+          if rank == "sudo":
+            if isrank(redis,userId,chatID) == "sudos":
+              t = IDrank(redis,userId,chatID,r)
               tx = tx+t+","
-              if x is "asudo":
-                 remasudo(redis,userId)
-              if x is "sudos":
-                 remsudos(redis,userId)
-              elif x is "malk":
-                remrank(redis,x,userId,chatID,"one")
-              else:
-                remrank(redis,x,userId,chatID,"array")
-          BY = "<a href=\"tg://user?id={}\">{}</a>".format(userId,userFn)
-          Bot("sendMessage",{"chat_id":chatID,"text":r.remall.format(BY,tx),"reply_to_message_id":message.message_id,"parse_mode":"html"})
+              remsudos(redis,userId)
+
+            if isrank(redis,userId,chatID) == "creator":
+              t = IDrank(redis,userId,chatID,r)
+              tx = tx+t+","
+              remrank(redis,"creator",userId,chatID,"one")
+
+            if isrank(redis,userId,chatID) == "owner":
+              t = IDrank(redis,userId,chatID,r)
+              tx = tx+t+","
+              remrank(redis,"owner",userId,chatID,"array")
+
+            if isrank(redis,userId,chatID) == "admin":
+              t = IDrank(redis,userId,chatID,r)
+              tx = tx+t+","
+              remrank(redis,"admin",userId,chatID,"array")
+            if isrank(redis,userId,chatID) == "vip":
+              t = IDrank(redis,userId,chatID,r)
+              tx = tx+t+","
+              remrank(redis,"vip",userId,chatID,"array")
+            
+          if rank == "sudos":
+
+            if isrank(redis,userId,chatID) == "creator":
+              t = IDrank(redis,userId,chatID,r)
+              tx = tx+t+","
+              remrank(redis,"creator",userId,chatID,"one")
+
+            if isrank(redis,userId,chatID) == "owner":
+              t = IDrank(redis,userId,chatID,r)
+              tx = tx+t+","
+              remrank(redis,"owner",userId,chatID,"array")
+
+            if isrank(redis,userId,chatID) == "admin":
+              t = IDrank(redis,userId,chatID,r)
+              tx = tx+t+","
+              remrank(redis,"admin",userId,chatID,"array")
+            if isrank(redis,userId,chatID) == "vip":
+              t = IDrank(redis,userId,chatID,r)
+              tx = tx+t+","
+              remrank(redis,"vip",userId,chatID,"array")
+            
+          if rank == "creator":
+            if isrank(redis,userId,chatID) == "owner":
+              t = IDrank(redis,userId,chatID,r)
+              tx = tx+t+","
+              remrank(redis,"owner",userId,chatID,"array")
+            if isrank(redis,userId,chatID) == "admin":
+              t = IDrank(redis,userId,chatID,r)
+              tx = tx+t+","
+              remrank(redis,"admin",userId,chatID,"array")
+            if isrank(redis,userId,chatID) == "vip":
+              t = IDrank(redis,userId,chatID,r)
+              tx = tx+t+","
+              remrank(redis,"vip",userId,chatID,"array")
+            
+          if rank == "owner":
+            if isrank(redis,userId,chatID) == "admin":
+              t = IDrank(redis,userId,chatID,r)
+              tx = tx+t+","
+              remrank(redis,"admin",userId,chatID,"array")
+            if isrank(redis,userId,chatID) == "vip":
+              t = IDrank(redis,userId,chatID,r)
+              tx = tx+t+","
+              remrank(redis,"vip",userId,chatID,"array")
+
+
+          if (rank == "owner" or rank == "creator" or rank == "sudos" or rank == "sudo") and (Rank != False or Rank != 0):
+            BY = "<a href=\"tg://user?id={}\">{}</a>".format(userId,userFn)
+            Bot("sendMessage",{"chat_id":chatID,"text":r.remall.format(BY,tx),"reply_to_message_id":message.message_id,"parse_mode":"html"})
+
+
+
         except Exception as e:
           Bot("sendMessage",{"chat_id":chatID,"text":r.userNocc,"reply_to_message_id":message.message_id,"parse_mode":"html"})
       if re.search(c.floodset, text):
@@ -519,14 +402,14 @@ def gpcmd(client, message,redis):
       if re.search(c.delIDC, text):
         redis.hdel("{}Nbot:SHOWid".format(BOT_ID),chatID)
         Bot("sendMessage",{"chat_id":chatID,"text":r.Ddelid,"reply_to_message_id":message.message_id,"parse_mode":"html"})
-      if re.search("^تعين ايدي$|^وضع ايدي$",text):
+      if re.search("^تعين ايدي$|^تعين ايدي (.*)$|^وضع ايدي$|^وضع ايدي (.*)$",text):
         message.reply_text("""⚠️꒐ يمكنك تغير الايدي بأرسال
 ⏺꒐ `تعين الايدي النص`
 
 🔽꒐ ويمكنك ايضاً اضافه
 {id} - لعرض الايدي
-{username} - لعرض المعرف
-{stast} - لعرض الرتبه
+{us} - لعرض المعرف
+{rk} - لعرض الرتبه
 {msgs} - لعرض عدد الرسائل
 {edits} - لعرض عدد السحكات
 {rate} - لعرض نسبه التفاعل
@@ -551,19 +434,13 @@ __italic__
 `inline fixed-width code`
 ⎯ ⎯ ⎯ ⎯""",parse_mode="markdown",disable_web_page_preview=True)
       if re.search(c.setIDC, text):
-          # print("ssssssssss")
-          # tx = text.replace(c.RsetIDC,"")
-          tx = re.findall(c.setIDC,text)[0][1]
-          rep = {"#age":"{age}","#name":"{name}","#id":"{id}","#username":"{username}","#msgs":"{msgs}","#stast":"{stast}","#edits":"{edits}","#rate":"{rate}","{us}":"{username}","#us":"{username}"}
-          for v in rep.keys():
-            tx = tx.replace(v,rep[v])
-            
+          tx = text.replace(c.RsetIDC,"")
           t = IDrank(redis,userID,chatID,r)
           msgs = (redis.hget("{}Nbot:{}:msgs".format(BOT_ID,chatID),userID) or 0)
           edits = (redis.hget("{}Nbot:{}:edits".format(BOT_ID,chatID),userID) or 0)
           rate = int(msgs)*100/20000
           age = getAge(userID,r)
-          v = Bot("sendMessage",{"chat_id":chatID,"text":tx.format(username=("@"+username or "None"),id=userID,stast=t,msgs=msgs,edits=edits,age=age,rate=str(rate)+"%"),"reply_to_message_id":message.message_id,"parse_mode":"html"})
+          v = Bot("sendMessage",{"chat_id":chatID,"text":tx.format(us=("@"+username or "None"),id=userID,rk=t,msgs=msgs,edits=edits,age=age,rate=str(rate)+"%"),"reply_to_message_id":message.message_id,"parse_mode":"html"})
           if v["ok"]:
             redis.hset("{}Nbot:SHOWid".format(BOT_ID),chatID,tx)
             Bot("sendMessage",{"chat_id":chatID,"text":r.DsetIDShow,"reply_to_message_id":message.message_id,"parse_mode":"html"})
@@ -644,7 +521,7 @@ __italic__
         Bot("sendMessage",{"chat_id":chatID,"text":r.blocklist.format(r.blocklist2,title),"reply_to_message_id":message.message_id,"reply_markup":reply_markup})
 
       if re.search(c.Replylist, text):
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(c.STword,callback_data=json.dumps(["showreplylist","",userID])),InlineKeyboardButton(c.STgifs,callback_data=json.dumps(["showGFreplylist","",userID])),],[InlineKeyboardButton(c.STvoice,callback_data=json.dumps(["showVOreplylist","",userID])),InlineKeyboardButton(c.STsticker,callback_data=json.dumps(["showSTreplylist","",userID])),],[InlineKeyboardButton("Mp3",callback_data=json.dumps(["showAUreplylist","",userID]))]])
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(c.STword,callback_data=json.dumps(["showreplylist","",userID])),InlineKeyboardButton(c.STgifs,callback_data=json.dumps(["showGFreplylist","",userID])),],[InlineKeyboardButton(c.STvoice,callback_data=json.dumps(["showVOreplylist","",userID])),InlineKeyboardButton(c.STsticker,callback_data=json.dumps(["showSTreplylist","",userID])),]])
         Bot("sendMessage",{"chat_id":chatID,"text":r.blocklist.format(text,title),"reply_to_message_id":message.message_id,"reply_markup":reply_markup})
 
       if re.search(c.FloodT, text):
@@ -673,8 +550,6 @@ __italic__
           Bot("sendMessage",{"chat_id":chatID,"text":r.Yrp.format(tx),"reply_to_message_id":message.message_id,"parse_mode":"html"})
         elif redis.hexists("{}Nbot:{}:VOreplys".format(BOT_ID,chatID),tx):
           Bot("sendMessage",{"chat_id":chatID,"text":r.Yrp.format(tx),"reply_to_message_id":message.message_id,"parse_mode":"html"})
-        elif redis.hexists("{}Nbot:{}:AUreplys".format(BOT_ID,chatID),tx):
-          Bot("sendMessage",{"chat_id":chatID,"text":r.Yrp.format(tx),"reply_to_message_id":message.message_id,"parse_mode":"html"})
         else:
           redis.hset("{}Nbot:step".format(BOT_ID),userID,tx)
           kb = InlineKeyboardMarkup([[InlineKeyboardButton(r.MoreInfo, url="t.me/calmaacc")]])
@@ -692,26 +567,32 @@ __italic__
           redis.hdel("{}Nbot:{}:GFreplys".format(BOT_ID,chatID),tx)
           Bot("sendMessage",{"chat_id":chatID,"text":r.Drp.format(tx),"reply_to_message_id":message.message_id,"parse_mode":"html"})
         elif redis.hexists("{}Nbot:{}:VOreplys".format(BOT_ID,chatID),tx):
-          redis.hdel("{}Nbot:{}:VOreplys".format(BOT_ID,chatID),tx)
-          Bot("sendMessage",{"chat_id":chatID,"text":r.Drp.format(tx),"reply_to_message_id":message.message_id,"parse_mode":"html"})
-        elif redis.hexists("{}Nbot:{}:AUreplys".format(BOT_ID,chatID),tx):
-          redis.hdel("{}Nbot:{}:AUreplys".format(BOT_ID,chatID),tx)
-          Bot("sendMessage",{"chat_id":chatID,"text":r.Drp.format(tx),"reply_to_message_id":message.message_id,"parse_mode":"html"})
-        elif redis.hexists("{}Nbot:{}:PHreplys".format(BOT_ID,chatID),tx):
-          redis.hdel("{}Nbot:{}:PHreplys".format(BOT_ID,chatID),tx)
+          redis.hdel("{}Nbot:{}:GFreplys".format(BOT_ID,chatID),tx)
           Bot("sendMessage",{"chat_id":chatID,"text":r.Drp.format(tx),"reply_to_message_id":message.message_id,"parse_mode":"html"})
         else:
           Bot("sendMessage",{"chat_id":chatID,"text":r.Norp.format(tx),"reply_to_message_id":message.message_id,"parse_mode":"html"})
+    if re.search(c.setname, text):
+      name = text.replace(c.Dsetname,"")
+      Bot("setChatTitle",{"chat_id":chatID,"title":name})
+      Bot("sendMessage",{"chat_id":chatID,"text":r.Dsetname.format(name),"reply_to_message_id":message.message_id,"parse_mode":"html"})
 
+    if re.search(c.setabout, text):
+      about = text.replace(c.Dsetabout,"")
+      Bot("setChatDescription",{"chat_id":chatID,"description":about})
+      Bot("sendMessage",{"chat_id":chatID,"text":r.Dsetabout.format(about),"reply_to_message_id":message.message_id,"parse_mode":"html"})
 
-
+    if re.search(c.setphoto, text) and message.reply_to_message and message.reply_to_message.photo:
+      ID = message.reply_to_message.photo.file_id
+      client.set_chat_photo(chat_id=chatID,photo=ID)
+      Bot("sendMessage",{"chat_id":chatID,"text":r.Dsetphoto,"reply_to_message_id":message.message_id,"parse_mode":"html"})
+    
     if re.search(c.pinmsg, text) and message.reply_to_message:
       if not redis.sismember("{}Nbot:Lpin".format(BOT_ID),chatID):
         ID = message.reply_to_message.message_id
         Bot("pinChatMessage",{"chat_id":chatID,"message_id":ID})
         redis.hset("{}Nbot:pinmsgs".format(BOT_ID),chatID,ID)
         Bot("sendMessage",{"chat_id":chatID,"text":r.Dpinmsg,"reply_to_message_id":message.message_id,"parse_mode":"html"})
-      elif redis.sismember("{}Nbot:Lpin".format(BOT_ID),chatID) and GPranks(userID,chatID) == "creator":
+      elif redis.sismember("{}Nbot:Lpin".format(BOT_ID),chatID) and rank == "creator":
         ID = message.reply_to_message.message_id
         Bot("pinChatMessage",{"chat_id":chatID,"message_id":ID})
         redis.hset("{}Nbot:pinmsgs".format(BOT_ID),chatID,ID)
@@ -719,10 +600,10 @@ __italic__
 
       if re.search(c.unpinmsg, text):
         if not redis.sismember("{}Nbot:Lpin".format(BOT_ID),chatID):
-          Bot("unpinChatMessage",{"chat_id":chatID})
+          Bot("unpinChatMessage",{"chat_id":chatID,"message_id":ID})
           Bot("sendMessage",{"chat_id":chatID,"text":r.Dunpinmsg,"reply_to_message_id":message.message_id,"parse_mode":"html"})
-        if redis.sismember("{}Nbot:Lpin".format(BOT_ID),chatID) and GPranks(userID,chatID) == "creator":
-          Bot("unpinChatMessage",{"chat_id":chatID})
+        if redis.sismember("{}Nbot:Lpin".format(BOT_ID),chatID) and rank == "creator":
+          Bot("unpinChatMessage",{"chat_id":chatID,"message_id":ID})
           Bot("sendMessage",{"chat_id":chatID,"text":r.Dunpinmsg,"reply_to_message_id":message.message_id,"parse_mode":"html"})
       
     if re.search(c.SETlink, text):
@@ -787,6 +668,8 @@ __italic__
               for i in range(int(lim)):
                 ids.append(nu-i)
               client.delete_messages(chatID, ids)
+              #print(ids)
+
       if re.search(c.tagall, text):
         tagall = [x for x in client.iter_chat_members(chatID)]
         if tagall:
@@ -801,7 +684,7 @@ __italic__
           sendM("NO",listTag,message)
           
       if re.search(c.Chlang, text):
-       Bot("sendMessage",{"chat_id":chatID,"text":r.Chlang,"reply_to_message_id":message.message_id,"parse_mode":"html","reply_markup":Clang(client, message,redis,r)})
+        Bot("sendMessage",{"chat_id":chatID,"text":r.Chlang,"reply_to_message_id":message.message_id,"parse_mode":"html","reply_markup":Clang(client, message,redis,r)})
       if re.search(c.PROadmins, text):
         ads = Bot("getChatAdministrators",{"chat_id":chatID})
         for ad in ads['result']:
